@@ -73,8 +73,10 @@ public abstract class ReconstructionEngine implements Engine {
      * @return
      */
     public EngineData configure(EngineData ed) {
+      if (constManagerMap == null)
       constManagerMap   = new ConcurrentHashMap<String,ConstantsManager>();
-      engineDictionary  = new SchemaFactory();
+      if (engineDictionary == null)
+       engineDictionary  = new SchemaFactory();
         //EngineData data = new EngineData();
         System.out.println("--- engine configuration is called " + this.getDescription());
         try {
