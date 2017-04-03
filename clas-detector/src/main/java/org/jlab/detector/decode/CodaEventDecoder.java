@@ -503,6 +503,32 @@ public class CodaEventDecoder {
     }
     
     
+    /**
+     * decoding bank that contains TI time stamp.
+     * @param crate
+     * @param node
+     * @param event
+     * @return
+     */
+    public List<DetectorDataDgtz>  getDataEntries_57610(EvioDataEvent event){
+
+        List<DetectorDataDgtz> tiEntries = new ArrayList<>();
+        List<EvioTreeBranch> branches = this.getEventBranches(event);
+
+        for(EvioTreeBranch branch : branches){
+            int  crate = branch.getTag();
+            EvioTreeBranch cbranch = this.getEventBranch(branches, branch.getTag());
+            for(EvioNode node : cbranch.getNodes()){
+                if(node.getTag()==57610){
+                    long[] longData = ByteDataTransformer.toLongArray(node.getStructureBuffer(false));
+                    DetectorDataDgtz entry = new DetectorDataDgtz(crate,0,0);
+                    entry.setTimeStamp(longData[2]);
+                    tiEntries.add(entry);
+                }
+            }
+        }
+        return tiEntries;
+    }
     
     public static void main(String[] args){
         EvioSource reader = new EvioSource();
