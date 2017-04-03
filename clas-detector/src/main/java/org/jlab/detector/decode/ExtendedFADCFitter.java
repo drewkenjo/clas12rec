@@ -27,7 +27,7 @@ public class ExtendedFADCFitter implements IFADCFitter {
         
     }
     
-    public void fitCourse(int nsa, int nsb, int tet, int pedr, short[] pulse) {
+    public void fitCourseTime(int nsa, int nsb, int tet, int pedr, short[] pulse) {
         pedsum=0;adc=0;mmsum=0;summing_in_progress=0;
         for (int mm=0; mm<pulse.length; mm++) {
             if(mm>p1 && mm<=p2)  pedsum+=pulse[mm];
