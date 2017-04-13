@@ -30,8 +30,10 @@ import org.jlab.utils.data.DataUtils;
 public class CodaEventDecoder {
     
     private int   runNumber = 0;
-    private int eventNumber = 0;    
-    
+    private int eventNumber = 0; 
+    private long  timeStamp = 0L;
+    private int triggerBits = 0;
+
     public CodaEventDecoder(){
         
     }
@@ -53,6 +55,7 @@ public class CodaEventDecoder {
         }        
         List<DetectorDataDgtz>  tdcEntries = this.getDataEntries_TDC(event);
         rawEntries.addAll(tdcEntries);
+        this.setTimeStamp(event);
         
         return rawEntries;
     }
@@ -65,7 +68,29 @@ public class CodaEventDecoder {
         return this.eventNumber;
     }
     
-    
+    public long getTimeStamp() {
+        return timeStamp;
+    }
+
+    public void setTimeStamp(EvioDataEvent event) {
+        List<DetectorDataDgtz> tiEntries = this.getDataEntries_TI(event);
+        if(tiEntries.size()>0) {
+            long ts = tiEntries.get(0).getTimeStamp();
+            for(int i=1; i<tiEntries.size(); i++) {
+                if(tiEntries.get(i).getTimeStamp() != ts) System.out.println("WARNING: mismatch in TI time stamps");
+            }
+            this.timeStamp = ts ;
+        }
+    }
+      
+    public int getTriggerBits() {
+        return triggerBits;
+    }
+
+    public void setTriggerBits(int triggerBits) {
+        this.triggerBits = triggerBits;
+    }
+  
     /**
      * returns list of decoded data in the event for given crate.
      * @param event
@@ -510,20 +535,31 @@ public class CodaEventDecoder {
      * @param event
      * @return
      */
-    public List<DetectorDataDgtz>  getDataEntries_57610(EvioDataEvent event){
+    public List<DetectorDataDgtz>  getDataEntries_TI(EvioDataEvent event){
 
         List<DetectorDataDgtz> tiEntries = new ArrayList<>();
         List<EvioTreeBranch> branches = this.getEventBranches(event);
 
+        System.out.println("New event");
         for(EvioTreeBranch branch : branches){
             int  crate = branch.getTag();
             EvioTreeBranch cbranch = this.getEventBranch(branches, branch.getTag());
             for(EvioNode node : cbranch.getNodes()){
                 if(node.getTag()==57610){
                     long[] longData = ByteDataTransformer.toLongArray(node.getStructureBuffer(false));
+                    for(int i=0; i<longData.length; i++) System.out.print(longData[i] + " ");
+                    System.out.println(" ");                        
+                    int[] intData = ByteDataTransformer.toIntArray(node.getStructureBuffer(false));
                     DetectorDataDgtz entry = new DetectorDataDgtz(crate,0,0);
-                    entry.setTimeStamp(longData[2]);
-                    tiEntries.add(entry);
+                    long tStamp = longData[2]&0x00000000ffffffff;
+                    entry.setTimeStamp(tStamp);
+                    if(node.getDataLength()==4) tiEntries.add(entry);
+                    else if(node.getDataLength()==5) { // trigger supervisor crate
+                        this.setTriggerBits(intData[6]);
+                    }
+                    for(int i=0; i<intData.length; i++) System.out.print(intData[i] + " ");
+                    System.out.println(" ");                        
+                    System.out.println(intData.length + " " + node.getDataLength() + "  " + crate + " " + longData[2] + " " + intData[4] + " " + entry.getTimeStamp());
                 }
             }
         }
@@ -532,24 +568,26 @@ public class CodaEventDecoder {
     
     public static void main(String[] args){
         EvioSource reader = new EvioSource();
-        reader.open("/Users/gavalian/Work/Software/Release-8.0/COATJAVA/sector2_000257_mode7.evio");
+//        reader.open("/Users/gavalian/Work/Software/Release-8.0/COATJAVA/sector2_000257_mode7.evio");
+        reader.open("/Users/devita/data/clas_000809.evio.0");
         CodaEventDecoder decoder = new CodaEventDecoder();
         DetectorEventDecoder detectorDecoder = new DetectorEventDecoder();
         
-        int maxEvents = 1;
+        int maxEvents = 100;
         int icounter  = 0;
         
         while(reader.hasEvent()==true&&icounter<maxEvents){
             
             EvioDataEvent event = (EvioDataEvent) reader.getNextEvent();
-            List<DetectorDataDgtz>  dataSet = decoder.getDataEntries(event);
-            detectorDecoder.translate(dataSet);
-            detectorDecoder.fitPulses(dataSet);
+            List<DetectorDataDgtz> tiEntries = decoder.getDataEntries_TI(event);
+//            List<DetectorDataDgtz>  dataSet = decoder.getDataEntries(event);
+//            detectorDecoder.translate(dataSet);
+//            detectorDecoder.fitPulses(dataSet);
             
             System.out.println("---> printout EVENT # " + icounter);
-            for(DetectorDataDgtz data : dataSet){
-                System.out.println(data);
-            }
+//            for(DetectorDataDgtz data : dataSet){
+//                System.out.println(data);
+//            }
             icounter++;
         }
         System.out.println("Done...");
