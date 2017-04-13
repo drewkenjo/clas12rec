@@ -540,16 +540,13 @@ public class CodaEventDecoder {
         List<DetectorDataDgtz> tiEntries = new ArrayList<>();
         List<EvioTreeBranch> branches = this.getEventBranches(event);
 
-        System.out.println("New event");
         for(EvioTreeBranch branch : branches){
             int  crate = branch.getTag();
             EvioTreeBranch cbranch = this.getEventBranch(branches, branch.getTag());
             for(EvioNode node : cbranch.getNodes()){
                 if(node.getTag()==57610){
                     long[] longData = ByteDataTransformer.toLongArray(node.getStructureBuffer(false));
-                    for(int i=0; i<longData.length; i++) System.out.print(longData[i] + " ");
-                    System.out.println(" ");                        
-                    int[] intData = ByteDataTransformer.toIntArray(node.getStructureBuffer(false));
+                    int[]  intData  = ByteDataTransformer.toIntArray(node.getStructureBuffer(false));
                     DetectorDataDgtz entry = new DetectorDataDgtz(crate,0,0);
                     long tStamp = longData[2]&0x00000000ffffffff;
                     entry.setTimeStamp(tStamp);
@@ -557,9 +554,6 @@ public class CodaEventDecoder {
                     else if(node.getDataLength()==5) { // trigger supervisor crate
                         this.setTriggerBits(intData[6]);
                     }
-                    for(int i=0; i<intData.length; i++) System.out.print(intData[i] + " ");
-                    System.out.println(" ");                        
-                    System.out.println(intData.length + " " + node.getDataLength() + "  " + crate + " " + longData[2] + " " + intData[4] + " " + entry.getTimeStamp());
                 }
             }
         }
@@ -568,26 +562,24 @@ public class CodaEventDecoder {
     
     public static void main(String[] args){
         EvioSource reader = new EvioSource();
-//        reader.open("/Users/gavalian/Work/Software/Release-8.0/COATJAVA/sector2_000257_mode7.evio");
-        reader.open("/Users/devita/data/clas_000809.evio.0");
+        reader.open("/Users/gavalian/Work/Software/Release-8.0/COATJAVA/sector2_000257_mode7.evio");
         CodaEventDecoder decoder = new CodaEventDecoder();
         DetectorEventDecoder detectorDecoder = new DetectorEventDecoder();
         
-        int maxEvents = 100;
+        int maxEvents = 1;
         int icounter  = 0;
         
         while(reader.hasEvent()==true&&icounter<maxEvents){
             
             EvioDataEvent event = (EvioDataEvent) reader.getNextEvent();
-            List<DetectorDataDgtz> tiEntries = decoder.getDataEntries_TI(event);
-//            List<DetectorDataDgtz>  dataSet = decoder.getDataEntries(event);
-//            detectorDecoder.translate(dataSet);
-//            detectorDecoder.fitPulses(dataSet);
+            List<DetectorDataDgtz>  dataSet = decoder.getDataEntries(event);
+            detectorDecoder.translate(dataSet);
+            detectorDecoder.fitPulses(dataSet);
             
             System.out.println("---> printout EVENT # " + icounter);
-//            for(DetectorDataDgtz data : dataSet){
-//                System.out.println(data);
-//            }
+            for(DetectorDataDgtz data : dataSet){
+                System.out.println(data);
+            }
             icounter++;
         }
         System.out.println("Done...");
